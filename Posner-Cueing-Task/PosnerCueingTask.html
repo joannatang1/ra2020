@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Posner Cueing Task</title>
+		<link href="../common-toolboxes/jspsych-6/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+		<script src="../common-toolboxes/numeric.min.js"></script>
+		<script src="../common-toolboxes/jquery-min.js" type="text/javascript"></script>
+		<script src="../common-toolboxes/jquery-ui.min.js"></script>
+		<script src="../common-toolboxes/jspsych-6/jspsych.js"></script>
+		<script src="../common-toolboxes/jspsych-6/plugins/jspsych-html-keyboard-response.js"></script>
+		<script src="../common-toolboxes/jspsych-6/plugins/jspsych-html-keyboard-response-updatable.js"></script>
+		<script src="../common-toolboxes/gabor-generator/gab.js"></script>				
+	</head>
+	<style>
+		body { 
+			background-color: grey;
+		}
+		td {
+			height: 200px;
+			width: 200px;
+		}
+		.cross {
+			width: 300px;
+		}
+	</style>
+	<body></body>
+	<script>
+
+		// assign subject id
+		var id = Math.floor(Math.random() * 1000000);
+		var file_name = 'PosnerCueingData_' + id + '.json';
+
+		var timeline = [];
+		// number of loops through timeline_variables 
+		let reps = 5;
+		//probability of valid/invalid cues
+		let percent_valid_invalid = [80, 20];
+		// for progress bar
+		let percent_done = 0;
+		// angle of left/right from vertical-align
+		let angle_offset = 10;
+		
+
+		var welcome = {
+			type: 'html-keyboard-response',
+			stimulus: '<p>Welcome to the Posner Cueing experiment.</p><br><p>In this experiment you will be asked to respond to a stimulus as quickly as possible (stimuli will be shown on next screen). This stimulus can appear either on the left or right side of the screen. To help you prepare, a blue dot will appear at the location that is <i>likely</i> to have the stimulus. Note: rarely, the stimulus may appear on the other side (opposite from the blue dot). If this occurs, please still respond as fast as you can!</p><br><p> If you would like to exit early, press <strong>escape</strong> to save the data.</p><br><p>Press any key to move to next screen.</p>',
+			data: {test_part: 'instruction'},
+			on_finish: function (data) {
+				data.stimulus = '';
+			}
+		};
+		timeline.push(welcome);
+
+		var instructions = {
+			type: 'html-keyboard-response',
+			stimulus: "<div style='width: 100%; overflow: hidden; display:block;'>" +
+				"<p>Press the <strong>left arrow</strong> if the Gabor patch is tilted <strong>counter-clockwise</strong>.</p>" +
+				"<p>Press the <strong>right arrow</strong> if the Gabor patch is tilted <strong>clockwise</strong>.</p>" +
+				"<div style='display: inline-block; height: 400px;'><img src='" + gaborgen_hsl(90+angle_offset, 50, 100, 0, 1, 200, 50*0.5) + "'/><p><strong>left arrow</strong></p></div>"+
+				"<div style='display: inline-block; height: 400px;'><img src='" + gaborgen_hsl(90-angle_offset, 50, 100, 0, 1, 200, 50*0.5) + "'/><p><strong>right arrow</strong></p></div>" +
+				"</div>" + 
+				"<div style='width: 100%; overflow: hidden; display:block;'>" +
+				"<p>The stimuli will come in different contrasts, ranging from low contrast (left) to high contrast (right). This may make it hard to see some of the stimuli. Either way, just do your best and go with your 'gut' when responding.</p>" +
+				"<div style='display: inline-block;'><img src='" + gaborgen(90, 50, 0.10, 200, 25) + "'/></div>"+
+				"<div style='display: inline-block;'><img src='" + gaborgen(90, 50, 0.25, 200, 25) + "'/></div>"+
+				"<div style='display: inline-block;'><img src='" + gaborgen(90, 50, 0.50, 200, 25) + "'/></div>"+
+				"<div style='display: inline-block;'><img src='" + gaborgen(90, 50, 0.75, 200, 25) + "'/></div>"+
+				"</div>"+
+				"<p>Press any key to begin!</p>",
+			post_trial_gap: 2000,
+			data: {test_part: 'instruction'},
+			on_finish: function (data) {
+				data.stimulus = '';
+			}
+		}
+		timeline.push(instructions);
+
+//---VARIABLES FOR STIMULI---
+
+		//options for placement of images
+		let placement = ['left','right'], side;
+
+		//choose left/right for gabor patch placement
+		function set_place(){
+			side = placement[Math.floor(Math.random() * 2)];
+		}
+
+		//html for cells in table 
+		let empty_cell = "<td></td>";
+		//cell with fixation cross; should be in the middle
+		//can change distance between cross and image in styles (.cross)
+		let cross_cell = "<td class='cross'><div style='font-size: 60px;'>+</div></td>";
+				
+		//attention cue 
+		let dot_img = function(){
+			set_place();
+			//set up table
+			//local b/c mixes with other html otherwise
+			let show = "<table><tr>";
+			//cell with image to display
+			let img_cell = "<td><img src='img/blue.png' height=25></td>";
+			if (side == 'left'){
+				show += img_cell + cross_cell + empty_cell;
+			}
+			else{
+				show += empty_cell + cross_cell + img_cell;
+			}
+			return show + "</tr></table>";
+		}
+
+		//counter-clockwise
+		let ccw_gabor = function(){
+			//let num = Math.floor(Math.random() * 100);
+			//if num is  less than or equal to percent_invalid, cue will be invalid
+			//if (num <= percent_invalid){
+			if (!jsPsych.timelineVariable("data", true)['congruent']) {
+				if (side == 'left'){
+					side = 'right';
+				}
+				else{
+					side = 'left';
+				}
+			}
+			//set up table
+			//local b/c mixes with other html otherwise
+			let show = "<table><tr>";
+			//cell with image to display
+			let img_cell = "<td><img src='img/counterClockwiseGabor.png' height=150></td>";
+			if (side == 'left'){
+				show += img_cell + cross_cell + empty_cell;
+			}
+			else{
+				show += empty_cell + cross_cell + img_cell;
+			}
+			return show + "</tr></table>";
+		}
+
+		//clockwise gabor
+		let cw_gabor = function(){
+			//let num = Math.floor(Math.random() * 100);
+			//if num is  less than or equal to percent_invalid, cue will be invalid
+			//if (num <= percent_invalid){
+			if (!jsPsych.timelineVariable("data", true)['congruent']) {
+				if (side == 'left'){
+					side = 'right';
+				}
+				else{
+					side = 'left';
+				}
+			}
+			//set up table
+			//local b/c mixes with other html otherwise
+			let show = "<table><tr>";
+			//cell with image to display
+			let img_cell = "<td><img src='img/clockwiseGabor.png' height=150></td>";
+			if (side=='left'){
+				show += img_cell + cross_cell + empty_cell; 
+			}
+			else{
+				show += empty_cell + cross_cell + img_cell;
+			}
+			return show + "</tr></table>";
+		}
+		
+		let gabor = function(data) {
+			//cell with image to display
+			if (!data.congruent) {
+				if (side == 'left'){
+					side = 'right';
+				}
+				else{
+					side = 'left';
+				}
+			}
+			
+			// Tilt of the gabor
+			if (data.correct_response == 37) {
+				tilt = 10;
+			}
+			else {
+				tilt = -10;
+			}
+						
+			//set up table
+			//local b/c mixes with other html otherwise
+			let show = "<table><tr>";
+			//cell with image to display
+			let img_cell = "<td><img src='" + gaborgen(90+tilt, 50, data.contrast) + "' height=150></td>";
+			if (side=='left'){
+				show += img_cell + cross_cell + empty_cell; 
+			}
+			else{
+				show += empty_cell + cross_cell + img_cell;
+			}
+			console.log("On " + side + ", tilted by " + tilt + "degrees, with contrast " + data.contrast)
+			return show + "</tr></table>";
+		}
+				
+		//empty table
+		let empty_table = function(){
+			//set up table
+			//local b/c mixes with other html otherwise
+			return "<table><tr>" + empty_cell + cross_cell + empty_cell + "</tr></table>";
+		}
+		
+		let stim_table = function(){
+			//set up table
+			//local b/c mixes with other html otherwise
+			let left_img_cell = "<td><img id='left_img' src='' height=150></td>";
+			let right_img_cell = "<td><img id='right_img' src='' height=150></td>";
+			return "<table><tr>" + left_img_cell + cross_cell + right_img_cell + "</tr></table>";
+		}
+		
+
+//---END OF STIMULI VARIABLES---
+
+		let cue_stim_asynch_func = function () {
+			return Math.floor(Math.random()*3000) + 400;
+		}
+		
+		var test_stimuli = [
+			//press left arrow key for left, right arrow key for right
+			{stimulus: gabor, data: {test_part: 'test', correct_response: 37, congruent: true, 
+				contrast: jsPsych.randomization.sampleWithoutReplacement([0.05, 0.1, 0.25, 0.5, 0.75], 1)[0]},
+				cue_stim_asynch: cue_stim_asynch_func},
+			{stimulus: gabor, data: {test_part: 'test', correct_response: 37, congruent: false, 
+				contrast: jsPsych.randomization.sampleWithoutReplacement([0.05, 0.1, 0.25, 0.5, 0.75], 1)[0]},
+				cue_stim_asynch: cue_stim_asynch_func},
+			{stimulus: gabor, data: {test_part: 'test', correct_response: 39, congruent: true, 
+				contrast: jsPsych.randomization.sampleWithoutReplacement([0.05, 0.1, 0.25, 0.5, 0.75], 1)[0]},
+				cue_stim_asynch: cue_stim_asynch_func},
+			{stimulus: gabor, data: {test_part: 'test', correct_response: 39, congruent: false, 
+				contrast: jsPsych.randomization.sampleWithoutReplacement([0.05, 0.1, 0.25, 0.5, 0.75], 1)[0]},
+				cue_stim_asynch: cue_stim_asynch_func}
+		];
+
+		var fixation = {
+			type: 'html-keyboard-response',
+			stimulus: '<div style="font-size: 60px;">+</div>',
+			data: {test_part: 'fixation'},
+			choices: [27],
+			//choices: jsPsych.NO_KEYS,
+			trial_duration: 400,
+		};
+
+		//display blue cue 
+		var cue = {
+			type: 'html-keyboard-response',
+			stimulus: dot_img,
+			data: {test_part: 'cue'},
+			choices: [27],
+			//choices: jsPsych.NO_KEYS,
+			trial_duration: 200,
+		}
+		
+		//for cross during time between cue and gabor 
+		var fixation2 = {
+			type: 'html-keyboard-response',
+			stimulus: '<div style="font-size: 60px;">+</div>',
+			data: {test_part: 'fixation2'},
+			choices: [27],
+			//choices: jsPsych.NO_KEYS,
+			trial_duration: jsPsych.timelineVariable('cue_stim_asynch'),
+			on_finish: function (data) {
+				data.delay_duration = jsPsych.currentTrial().trial_duration;
+			}
+		};
+
+		var test = {
+			type: 'html-keyboard-response-updatable',
+			//stimulus: jsPsych.timelineVariable('stimulus'),
+			stimulus: stim_table,
+			stimulus_update: empty_table,
+			stimulus_duration: 200,
+			choices: [37, 39, 27],
+			data: jsPsych.timelineVariable('data'),
+			on_start: function(trial) {
+				trial.data.contrast = jsPsych.randomization.sampleWithoutReplacement([0.05, 0.1, 0.25, 0.5, 0.75], 1)[0];
+				trial.stimulus = gabor(trial.data);
+			},
+			on_finish: function(data) {
+				// clean up stimulus variable
+				data.stimulus = '';
+				// calculate correct for easy decoding later
+				data.correct = (data.key_press == data.correct_response);
+				// calculate time since fixation2 start
+				var cur_node = jsPsych.currentTimelineNodeID();
+				var prev_node = cur_node.split('-')
+				prev_node = prev_node[0] + '-' + prev_node[1] + '-' + (parseInt(prev_node[2].split('.')[0])-1) + '.' + prev_node[2].split('.')[1]
+				//data.delay_plus_rt = jsPsych.data.getDataByTimelineNode(cur_node).values()[0]['time_elapsed'] - jsPsych.data.getDataByTimelineNode(prev_node).values()[0]['time_elapsed'];
+				//data.delay = data.delay_plus_rt - data.rt;
+				data.delay = jsPsych.data.getDataByTimelineNode(prev_node).values()[0]['delay_duration']
+				//update progress upon completion of single trial
+				percent_done += 1/(reps);
+				jsPsych.setProgressBar(percent_done);
+			},
+			//inter-trial interval
+			post_trial_gap: 1500
+		};
+
+		var test_procedure = {
+			timeline: [fixation, cue, fixation2, test],
+			timeline_variables: test_stimuli,
+			sample: {
+				type: 'with-replacement',
+				size: reps, 
+				weights: [percent_valid_invalid[0], percent_valid_invalid[1], percent_valid_invalid[0], percent_valid_invalid[1]]
+			}
+		}
+		timeline.push(test_procedure);
+
+		var debrief_block = {
+			type: 'html-keyboard-response',
+			stimulus: function() {
+				var trials = jsPsych.data.get().filter({test_part: 'test'});
+				var correct_trials = trials.filter({correct: true});
+				var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+				var rt = Math.round(correct_trials.select('rt').mean());
+				return '<p>You responded correctly on ' + accuracy + '% of the trials.</p>' +
+					'<p>Your average response time was ' + rt + 'ms.</p>' +
+					'<p>Press any key to complete the experiment. Please save and upload your data!</p>'; 
+			},
+			data: {test_part: 'instruction'}
+		};
+		timeline.push(debrief_block);
+
+		jsPsych.init({
+			timeline: timeline,
+			show_progress_bar: true,
+			auto_update_progress_bar: false,
+			on_finish: function(){
+				//create JSON file & ask for permission to download
+				jsPsych.data.get().localSave('json', file_name);
+				return jsPsych.data.displayData();
+			},
+			on_trial_start: function(data){
+				if (data.key_press == 27){
+					jsPsych.data.get().localSave('json', file_name);
+					return jsPsych.data.displayData();
+				}
+			},
+			on_trial_finish: function(data){
+				if (data.key_press == 27){
+					jsPsych.data.get().localSave('json', file_name);
+					return jsPsych.data.displayData();
+				}
+			}
+		});
+		
+		jsPsych.data.addProperties({subject: id});
+	</script>
+</html>
